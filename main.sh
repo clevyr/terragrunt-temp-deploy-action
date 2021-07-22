@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# Set up some variables from the action repo
+# Set up some variables so we can reference the GitHub Action context
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
 __base="$(basename ${__file} .sh)"
@@ -15,37 +15,37 @@ cluster_info() {
     gcloud container --project "$host_project" clusters list --format json \
         | jq -r --arg 'key' "$1" '.[][$key]'
 }
-# create_deployment() {
-#     local params
-#     params="$(jq -nc \
-#         --arg ref "$GITHUB_SHA" \
-#         --arg environment "$environment" \
-#         '{
-#             "ref": $ref,
-#             "environment": $environment,
-#             "auto_merge": false,
-#             "required_contexts": [],
-#             "production_environment": $environment | startswith("prod")
-#         }')"
+create_deployment() {
+    local params
+    params="$(jq -nc \
+        --arg ref "$GITHUB_SHA" \
+        --arg environment "$environment" \
+        '{
+            "ref": $ref,
+            "environment": $environment,
+            "auto_merge": false,
+            "required_contexts": [],
+            "production_environment": $environment | startswith("prod")
+        }')"
 
-#     gh api -X POST "/repos/:owner/:repo/deployments" \
-#         -H 'Accept: application/vnd.github.ant-man-preview+json' \
-#         --input - <<< "$params"
-# }
+    gh api -X POST "/repos/:owner/:repo/deployments" \
+        -H 'Accept: application/vnd.github.ant-man-preview+json' \
+        --input - <<< "$params"
+}
 
-# set_deployment_status() {
-#     if [[ -n "${deployment_id:-}" ]]; then
-#         local state="$1" \
-#             environment_url="${2:-}"
-#         gh api --silent -X POST "/repos/:owner/:repo/deployments/$deployment_id/statuses" \
-#             -H 'Accept: application/vnd.github.ant-man-preview+json' \
-#             -H 'Accept: application/vnd.github.flash-preview+json' \
-#             -F "state=$state" \
-#             -F "log_url=https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA/checks" \
-#             -F "environment_url=$environment_url" \
-#             -F 'auto_inactive=true'
-#     fi
-# }
+set_deployment_status() {
+    if [[ -n "${deployment_id:-}" ]]; then
+        local state="$1" \
+            environment_url="${2:-}"
+        gh api --silent -X POST "/repos/:owner/:repo/deployments/$deployment_id/statuses" \
+            -H 'Accept: application/vnd.github.ant-man-preview+json' \
+            -H 'Accept: application/vnd.github.flash-preview+json' \
+            -F "state=$state" \
+            -F "log_url=https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA/checks" \
+            -F "environment_url=$environment_url" \
+            -F 'auto_inactive=true'
+    fi
+}
 
 export IFS=$'\n\t'
 
@@ -57,9 +57,17 @@ project_id="${GCLOUD_GKE_PROJECT:-$(jq -r .project_id <<< "$GCLOUD_KEY_FILE")}"
 region="us-central1"
 
 # Put auth stuff here (gcloud, kube-config)
+_log Verify this is a PR
+prNum=$(gh pr view --json number --jq .number)
+if [ ! $? -eq 0 ]; then
+    _log "We're not operating on a pull request! Aborting."
+    exit 1
+fi
+environment="pr"$prNum
+
 _log Verify tempbuilds folder exists
 if [ ! -d deployment/tempbuilds ]; then
-    _log tempbuilds folder not found! Exiting!
+    _log tempbuilds folder not found! Aborting.
     exit 1
 fi
 
@@ -76,8 +84,18 @@ gcloud container clusters get-credentials  \
     --region "$region" \
     --project "$host_project"
 
-_log Starting Terragrunt install...
-brew install terragrunt --ignore-dependencies 2>&1 &
+# if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+#     # Create the deployment
+#     github_deployment="$(create_deployment)"
+
+#     # Set the deployment status
+#     deployment_id="$(jq '.id' <<< "$github_deployment")"
+#     set_deployment_status in_progress
+#     trap 'set_deployment_status failure' ERR
+# fi
+
+_log Starting Terragrunt and yq install...
+brew install terragrunt yq --ignore-dependencies 2>&1 &
 tg_install_pid="$!"
 
 _log Add custom helm repo
@@ -90,11 +108,10 @@ friendlyName=$(shuf -n 1 "$__dir/adjectives.txt")-$(shuf -n 1 "$__dir/names.txt"
 
 _log Renaming folder and replacing URL values
 cd deployment
-prNum=12
-folderName="pr"$prNum
-mv tempbuilds $folderName
-cd $folderName
+mv tempbuilds $environment
+cd $environment
 sed -i "s/REPLACE/$friendlyName/g" helm.yaml
+environment_url="https://"$(yq e .app.ingress.hostname helm.y*ml)
 
 _log Wait for Terragrunt to finish installing...
 wait "$tg_install_pid"
@@ -102,9 +119,9 @@ wait "$tg_install_pid"
 _log Initializing Terragrunt
 cd ../setup
 terragrunt init
-cd ../$folderName
+cd ../$environment
 terragrunt init
 _log Running Terragrunt apply
-#terragrunt apply -var=app_image_tag="$folderName"
-terragrunt apply -var=app_image_tag="dev" -auto-approve
-_log Deployment complete
+#terragrunt apply -var=app_image_tag=$GITHUB_SHA -auto-approve
+_log Deployment complete: $environment_url
+#set_deployment_status success "$environment_url"
