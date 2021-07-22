@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+# Set up some variables from the action repo
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
+__base="$(basename ${__file} .sh)"
+
 _log() {
     local IFS=$' \n\t'
     printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2;
@@ -81,9 +86,7 @@ helm repo update
 
 # Generate friendly URL
 _log Generating names
-mapfile -t adjective < adjectives.txt
-mapfile -t name < names.txt
-friendlyName=${adjective[RANDOM%${#adjective[@]}]-1}-${name[RANDOM%${#name[@]}]-1}
+friendlyName=$(shuf -n 1 "$__dir/adjectives.txt")-$(shuf -n 1 "$__dir/names.txt")
 
 _log Renaming folder and replacing URL values
 cd deployment
