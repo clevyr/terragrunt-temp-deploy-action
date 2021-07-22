@@ -81,8 +81,8 @@ helm repo update
 
 # Generate friendly URL
 _log Generating names
-mapfile -t adjective < adjectives
-mapfile -t name < names
+mapfile -t adjective < adjectives.txt
+mapfile -t name < names.txt
 friendlyName=${adjective[RANDOM%${#adjective[@]}]-1}-${name[RANDOM%${#name[@]}]-1}
 
 _log Renaming folder and replacing URL values
