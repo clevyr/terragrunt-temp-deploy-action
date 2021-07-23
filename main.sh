@@ -56,7 +56,8 @@ host_project="${HOST_PROJECT:-momma-motus}"
 project_id="${GCLOUD_GKE_PROJECT:-$(jq -r .project_id <<< "$GCLOUD_KEY_FILE")}"
 region="us-central1"
 
-# Put auth stuff here (gcloud, kube-config)
+_log "SHA: "$GITHUB_SHA
+_log "Ref: "$GITHUB_REF
 _log Verify this is a PR
 prNum=$(gh pr view --json number --jq .number)
 if [ ! $? -eq 0 ]; then
