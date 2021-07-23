@@ -118,7 +118,7 @@ _log Wait for Terragrunt to finish installing...
 wait "$tg_install_pid"
 
 _log testing submodule directory
-ls ../terragrunt
+echo $(ls ../terragrunt)
 #_log Initializing Terragrunt
 #cd ../setup
 #terragrunt init
