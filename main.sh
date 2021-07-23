@@ -85,15 +85,14 @@ gcloud container clusters get-credentials  \
     --region "$region" \
     --project "$host_project"
 
-# if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-#     # Create the deployment
-#     github_deployment="$(create_deployment)"
-
-#     # Set the deployment status
-#     deployment_id="$(jq '.id' <<< "$github_deployment")"
-#     set_deployment_status in_progress
-#     trap 'set_deployment_status failure' ERR
-# fi
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    # Create the deployment
+    github_deployment="$(create_deployment)"
+    # Set the deployment status
+    deployment_id="$(jq '.id' <<< "$github_deployment")"
+    set_deployment_status in_progress
+    trap 'set_deployment_status failure' ERR
+fi
 
 _log Starting Terragrunt and yq install...
 brew install terragrunt yq --ignore-dependencies 2>&1 &
@@ -126,4 +125,4 @@ _log Running Terragrunt apply
 echo $(terragrunt plan -var=app_image_tag=$GITHUB_SHA)
 #terragrunt apply -var=app_image_tag=$GITHUB_SHA -auto-approve
 _log Deployment complete: $environment_url
-#set_deployment_status success "$environment_url"
+set_deployment_status success "$environment_url"
