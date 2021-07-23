@@ -117,14 +117,13 @@ environment_url="https://"$(yq e .app.ingress.hostname helm.y*ml)
 _log Wait for Terragrunt to finish installing...
 wait "$tg_install_pid"
 
-_log testing submodule directory
-echo $(ls ../terragrunt)
-#_log Initializing Terragrunt
-#cd ../setup
-#terragrunt init
-#cd ../$environment
-#terragrunt init
-#_log Running Terragrunt apply
+_log Initializing Terragrunt
+cd ../setup
+terragrunt init
+cd ../$environment
+terragrunt init
+_log Running Terragrunt apply
+echo $(terragrunt plan -var=app_image_tag=$GITHUB_SHA)
 #terragrunt apply -var=app_image_tag=$GITHUB_SHA -auto-approve
 _log Deployment complete: $environment_url
 #set_deployment_status success "$environment_url"
