@@ -122,7 +122,6 @@ terragrunt init
 cd ../$environment
 terragrunt init
 _log Running Terragrunt apply
-echo $(terragrunt plan -var=app_image_tag=$GITHUB_SHA)
-#terragrunt apply -var=app_image_tag=$GITHUB_SHA -auto-approve
+terragrunt apply -var=app_image_tag=$GITHUB_SHA -auto-approve
 _log Deployment complete: $environment_url
 set_deployment_status success "$environment_url"
