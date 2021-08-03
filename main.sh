@@ -57,6 +57,7 @@ project_id="${GCLOUD_GKE_PROJECT:-$(jq -r .project_id <<< "$GCLOUD_KEY_FILE")}"
 region="us-central1"
 
 _log "SHA: "$GITHUB_SHA
+_log "Passed SHA: "$PASSED_SHA
 _log "Ref: "$GITHUB_REF
 _log Verify this is a PR
 type=$(echo $GITHUB_REF | awk -F/ '{print $1}')
@@ -127,6 +128,6 @@ terragrunt init
 cd ../$environment
 terragrunt init
 _log Running Terragrunt apply
-terragrunt apply -var=app_image_tag=$GITHUB_SHA -auto-approve
+terragrunt apply -var=app_image_tag=$PASSED_SHA -auto-approve
 _log Deployment complete: $environment_url
 set_deployment_status success "$environment_url"
