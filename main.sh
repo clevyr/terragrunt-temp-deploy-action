@@ -18,7 +18,7 @@ cluster_info() {
 create_deployment() {
     local params
     params="$(jq -nc \
-        --arg ref "$GITHUB_SHA" \
+        --arg ref "$PASSED_SHA" \
         --arg environment "$environment" \
         '{
             "ref": $ref,
@@ -41,7 +41,7 @@ set_deployment_status() {
             -H 'Accept: application/vnd.github.ant-man-preview+json' \
             -H 'Accept: application/vnd.github.flash-preview+json' \
             -F "state=$state" \
-            -F "log_url=https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA/checks" \
+            -F "log_url=https://github.com/$GITHUB_REPOSITORY/commit/$PASSED_SHA/checks" \
             -F "environment_url=$environment_url" \
             -F 'auto_inactive=true'
     fi
