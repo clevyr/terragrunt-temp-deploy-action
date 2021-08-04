@@ -91,7 +91,7 @@ if [[ -n "${GITHUB_TOKEN:-}" ]]; then
 fi
 
 _log Starting Terragrunt and yq install...
-brew install terragrunt yq --ignore-dependencies 2>&1 &
+brew install terragrunt yq sops --ignore-dependencies 2>&1 &
 tg_install_pid="$!"
 
 _log Add custom helm repo
@@ -107,10 +107,18 @@ cd deployment
 mv tempbuilds $environment
 cd $environment
 sed -i "s/REPLACE/$friendlyName/g" helm.yaml
-environment_url="https://"$(yq e .app.ingress.hostname helm.y*ml)
+environment_url="https://"$(yq e .app.ingress.hostname helm.yaml)
 
 _log Wait for Terragrunt to finish installing...
 wait "$tg_install_pid"
+
+if [ -f secrets.yaml ]; then
+    _log Decrypting secrets
+    # Add a newline if there isn't one
+    sed -i -e '$a\' helm.yaml
+    # Decrypt the secret file via SOPSs then append to the values file
+    sops -d secrets.yaml >> helm.yaml
+fi
 
 _log Initializing Terragrunt
 cd ../setup
