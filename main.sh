@@ -61,6 +61,7 @@ _log "Passed SHA: "$PASSED_SHA
 _log "Ref: "$GITHUB_REF
 prNum=$PR_NUMBER
 environment="pr"$prNum
+funNames="${USE_CLEVYR_NAMES:-false}"
 
 _log Verify tempbuilds folder exists
 if [ ! -d deployment/tempbuilds ]; then
@@ -100,7 +101,11 @@ helm repo update
 
 # Generate friendly URL
 _log Generating names
-friendlyName=$(shuf -n 1 "$__dir/adjectives.txt")-$(shuf -n 1 "$__dir/names.txt")
+if [ $funNames == "true" ]; then
+    friendlyName=$(shuf -n 1 "$__dir/adjectives.txt")-$(shuf -n 1 "$__dir/names.txt")
+else
+    friendlyName=$(shuf -n 1 "$__dir/colors.txt")-$(shuf -n 1 "$__dir/animals.txt")
+fi
 
 _log Renaming folder and replacing URL values
 cd deployment
