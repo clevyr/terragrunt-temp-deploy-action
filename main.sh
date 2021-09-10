@@ -112,7 +112,7 @@ cd deployment
 mv tempbuilds $environment
 cd $environment
 sed -i "s/REPLACE/$friendlyName/g" helm.yaml
-environment_url="https://"$(yq e '.static.ingress.hostname // .app.ingress.hostname' *.yaml)
+environment_url="https://"$(yq e '.static.ingress.hostname // .app.ingress.hostname' helm.yaml)
 
 _log Wait for Terragrunt to finish installing...
 wait "$tg_install_pid"
