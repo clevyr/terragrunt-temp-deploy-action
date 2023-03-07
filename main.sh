@@ -138,5 +138,6 @@ cd ../$environment
 terragrunt init
 _log Running Terragrunt apply
 terragrunt apply -var=app_image_tag=$PASSED_SHA -var=static_site_image_tag=$PASSED_SHA -auto-approve
+kubectl rollout restart deployment reflector -n reflector
 _log Deployment complete: $environment_url
 set_deployment_status success "$environment_url"
